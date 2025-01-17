@@ -1,0 +1,166 @@
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
+import plotly.graph_objs as go
+import random
+
+app = dash.Dash(__name__, title='рисовалка от Ани и Натали')
+
+rules_text = (
+    "Привет! Это рисовалка от Ани и Натали. Мы внучки-наследницы великого художника Иильяно — он оставил нам на память свой художественный интерфейс. "
+    "С помощью пяти основных цветов ты можешь нарисовать что угодно! Только одним цветом. Так создавал рисовалку наш дедушка, так как творил одноцветную живопись. "
+    "Мы сохранили аутентичность его изобретения. А ещё нам достался его обветшалый дневник с идеями для рисования, может тебе выпадет случайная идея, попробуй."
+)
+
+ideas = {
+    'природа': [
+        'Нарисуй горный пейзаж с речкой.',
+        'Изображение заката над океаном.',
+        'Лесная поляна в цвету.',
+        'Цветущий сад с бабочками.',
+        'Высокие деревья в тумане.',
+        'Пейзаж с водопадом.',
+        'Зимний снежный лес.',
+        'Следы на песке у моря.',
+        'Красивое озеро с лилиями.',
+        'Птицы в небе над полем.'
+    ],
+    'человек': [
+        'Портрет человека с улыбкой.',
+        'Силуэт человека на фоне заката.',
+        'Люди на улице в стилях 20-х годов.',
+        'Одинокий человек на скамейке.',
+        'Счастливая семья на пикнике.',
+        'Человек, читающий книгу в парке.',
+        'Спортивные люди, занимающиеся бегом.',
+        'Танцующие влюбленные.',
+        'Человек, играющий на гитаре.',
+        'Портрет рабочего с инструментами.'
+    ],
+    'техника': [
+        'Паутинка проводов и микросхем.',
+        'Космический корабль на космическом фоне.',
+        'Старый ретро автомобиль.',
+        'Сложный механизм с шестернями.',
+        'Современный город с небоскребами.',
+        'Робот, выполняющий задачу.',
+        'Подводная лодка в океане.',
+        'Летящий самолет над облаками.',
+        'Компьютерная лаборатория.',
+        'Мост через реку с автомобилями.'
+    ]
+}
+
+app.layout = html.Div([
+    html.Div(id='rules', children=[
+        html.Div(rules_text, style={'padding': '10px', 'margin': '10px', 'border': '1px solid black', 'border-radius': '5px'}),
+        html.Button('Закрыть правила', id='close-button', n_clicks=0),
+    ], style={'textAlign': 'center', 'marginBottom': '20px'}),
+
+    dcc.Dropdown(
+        id='color-picker',
+        options=[
+            {'label': 'Красный', 'value': 'red'},
+            {'label': 'Зеленый', 'value': 'green'},
+            {'label': 'Синий', 'value': 'blue'},
+            {'label': 'Черный', 'value': 'black'},
+            {'label': 'Желтый', 'value': 'yellow'}
+        ],
+        value='black',
+        clearable=False,
+        style={'width': '200px'}
+    ),
+    
+    dcc.Graph(id='canvas', config={'displayModeBar': False}),
+    dcc.Store(id='drawing-data', data={}),
+    html.Button('Очистить', id='clear-button'),
+    
+    html.Div([
+        html.Button('Идеи для рисования', id='ideas-button', n_clicks=0),
+        dcc.Dropdown(
+            id='ideas-category',
+            options=[
+                {'label': 'Природа', 'value': 'природа'},
+                {'label': 'Человек', 'value': 'человек'},
+                {'label': 'Техника', 'value': 'техника'}
+            ],
+            placeholder='Выберите категорию',
+            style={'width': '200px'}
+        ),
+        html.Div(id='idea-output', style={'marginTop': '10px'})  
+    ], style={'textAlign': 'center', 'marginTop': '20px'})
+])
+
+@app.callback(
+    Output('rules', 'style'),
+    Input('close-button', 'n_clicks')
+)
+def close_rules(n_clicks):
+    if n_clicks > 0:
+        return {'display': 'none'}
+    return {'display': 'block'}
+
+
+@app.callback(
+    Output('idea-output', 'children'),  
+    Input('ideas-button', 'n_clicks'),  
+    Input('ideas-category', 'value')  
+)
+def generate_idea(n_clicks, selected_category):
+    if n_clicks > 0 and selected_category:
+        idea = random.choice(ideas[selected_category])  
+        return f'Идея для рисования: {idea}'  
+    return ''  
+
+
+@app.callback(
+    Output('canvas', 'figure'),
+    Output('drawing-data', 'data'),
+    Input('canvas', 'clickData'),
+    Input('drawing-data', 'data'),
+    Input('clear-button', 'n_clicks'),
+    Input('color-picker', 'value')
+)
+def update_canvas(clickData, drawing_data, n_clicks, color):
+    if n_clicks:
+        drawing_data = {}
+
+
+    if not drawing_data:
+        drawing_data = {}
+
+
+    if clickData:
+        x = clickData['points'][0]['x']
+        y = clickData['points'][0]['y']
+
+
+        if color not in drawing_data:
+            drawing_data[color] = []
+        drawing_data[color].append((x, y))
+
+
+    fig = go.Figure()
+
+
+    for color_key, points in drawing_data.items():
+        if points:  # Если есть точки
+            x_vals, y_vals = zip(*points)
+            fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines+markers', line=dict(color=color_key)))
+
+
+    fig.update_layout(
+        dragmode='drawopenpath',
+        newshape=dict(line=dict(color=color, width=2)),
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        showlegend=False,
+        plot_bgcolor='white'
+    )
+
+
+    return fig, drawing_data
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
