@@ -70,11 +70,11 @@ app.layout = html.Div([
         clearable=False,
         style={'width': '200px'}
     ),
-    
+
     dcc.Graph(id='canvas', config={'displayModeBar': False}),
     dcc.Store(id='drawing-data', data={}),
     html.Button('Очистить', id='clear-button'),
-    
+
     html.Div([
         html.Button('Идеи для рисования', id='ideas-button', n_clicks=0),
         dcc.Dropdown(
@@ -100,7 +100,6 @@ def close_rules(n_clicks):
         return {'display': 'none'}
     return {'display': 'block'}
 
-
 @app.callback(
     Output('idea-output', 'children'),  
     Input('ideas-button', 'n_clicks'),  
@@ -111,7 +110,6 @@ def generate_idea(n_clicks, selected_category):
         idea = random.choice(ideas[selected_category])  
         return f'Идея для рисования: {idea}'  
     return ''  
-
 
 @app.callback(
     Output('canvas', 'figure'),
@@ -139,15 +137,12 @@ def update_canvas(clickData, drawing_data, n_clicks, color):
             drawing_data[color] = []
         drawing_data[color].append((x, y))
 
-
     fig = go.Figure()
-
 
     for color_key, points in drawing_data.items():
         if points:  # Если есть точки
             x_vals, y_vals = zip(*points)
             fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines+markers', line=dict(color=color_key)))
-
 
     fig.update_layout(
         dragmode='drawopenpath',
@@ -158,9 +153,7 @@ def update_canvas(clickData, drawing_data, n_clicks, color):
         plot_bgcolor='white'
     )
 
-
     return fig, drawing_data
-
 
 if __name__ == '__main__':
     app.run_server(debug=True)
